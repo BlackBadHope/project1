@@ -4,6 +4,11 @@ on:
   push:
     paths:
       - '.github/workflows/fetch-jtpllkbqtum.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'tmp/jTPLlKbqTuM-trigger.txt'
   workflow_dispatch:
 
 permissions:
