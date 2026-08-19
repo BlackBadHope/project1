@@ -1,0 +1,62 @@
+name: Temporary fetch jTPLlKbqTuM transcript
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fetch-jtpllkbqtum.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install fetch dependencies
+        run: python -m pip install --upgrade yt-dlp youtube-transcript-api requests
+
+      - name: Fetch transcript through APIs
+        continue-on-error: true
+        run: python tmp/fetch_jtpl.py
+
+      - name: Fetch YouTube metadata
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          yt-dlp --dump-single-json --skip-download --no-warnings 'https://www.youtube.com/watch?v=jTPLlKbqTuM' > out/yt_dlp_metadata.json
+
+      - name: Fetch every available subtitle track
+        continue-on-error: true
+        run: |
+          mkdir -p out/subtitles
+          yt-dlp \
+            --skip-download \
+            --write-subs \
+            --write-auto-subs \
+            --all-subs \
+            --sub-format 'json3/vtt/best' \
+            --output 'out/subtitles/%(id)s.%(ext)s' \
+            'https://www.youtube.com/watch?v=jTPLlKbqTuM'
+
+      - name: Record output inventory
+        if: always()
+        run: find out -maxdepth 3 -type f -printf '%p\t%s bytes\n' | sort | tee out/inventory.txt
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jtpllkbqtum-transcript
+          path: out
+          if-no-files-found: warn
+          retention-days: 1
